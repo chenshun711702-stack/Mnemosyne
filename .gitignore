@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+.env
+
+# Node / React
+node_modules/
+dist/
+dist-ssr
+*.local
+
+# Mnemosyne Specific
+Mnemosyne/mnemosyne-core/data/
+*.log
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
