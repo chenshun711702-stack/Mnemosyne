@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 
 interface Memory {
   id: string;
@@ -35,6 +35,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [encryptionKey, setEncryptionKey] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const getHeaders = () => {
     return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
@@ -53,6 +54,11 @@ function App() {
     fetchMemories();
   }, [encryptionKey]);
 
+  const triggerSuccess = () => {
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
   const handleIngest = async () => {
     if (!content) return;
     setLoading(true);
@@ -62,6 +68,7 @@ function App() {
         { headers: getHeaders() }
       );
       setContent('');
+      triggerSuccess();
       fetchMemories();
     } catch (err) {
       console.error(err);
@@ -81,6 +88,7 @@ function App() {
       await axios.post('/api/ingest/image', formData, { 
         headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' } 
       });
+      triggerSuccess();
       fetchMemories();
     } catch (err) {
       console.error(err);
@@ -120,6 +128,20 @@ function App() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 lg:p-12 overflow-x-hidden">
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-black uppercase text-[10px] tracking-widest"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Neural Fragment Synchronized
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div 
         className="max-w-7xl mx-auto space-y-8"
         initial="hidden"
@@ -139,12 +161,12 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.3.0-BENTO-IMAGE</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.3.1-BENTO-FEEDBACK</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
                 <LayoutGrid className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase">Multi-Modal Grid</span>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase">Interactive Grid</span>
               </div>
             </div>
           </div>
@@ -183,7 +205,9 @@ function App() {
                   <Sparkles className="w-4 h-4 text-blue-500" />
                   <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Ingestion</h2>
                 </div>
-                <span className="text-[9px] px-2 py-1 bg-white/5 rounded-lg text-zinc-600 font-bold uppercase tracking-tighter">Ready</span>
+                <span className="text-[9px] px-2 py-1 bg-white/5 rounded-lg text-zinc-600 font-bold uppercase tracking-tighter">
+                  {loading ? 'Processing...' : 'Ready'}
+                </span>
               </div>
               <textarea 
                 value={content}
@@ -193,9 +217,9 @@ function App() {
               />
               <div className="flex items-center justify-between">
                 <div className="flex gap-4">
-                  <label className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer flex items-center justify-center">
+                  <label className={`p-3 rounded-2xl border transition-colors cursor-pointer flex items-center justify-center ${loading ? 'bg-white/5 border-white/5 text-zinc-800 pointer-events-none' : 'bg-white/5 border-white/5 text-zinc-600 hover:text-white'}`}>
                     <ImageIcon className="w-4 h-4" />
-                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={loading} />
                   </label>
                   <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer">
                     <MapPin className="w-4 h-4" />
@@ -211,8 +235,13 @@ function App() {
                   whileTap={{ scale: 0.98 }}
                   className="bg-blue-600 hover:bg-blue-500 disabled:opacity-20 text-white px-8 py-4 rounded-3xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl shadow-blue-900/20 flex items-center gap-2"
                 >
-                  {loading ? 'Processing' : 'Commit Memory'}
-                  <ArrowUpRight className="w-4 h-4" />
+                  {loading ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+                      <RefreshCw className="w-4 h-4" />
+                    </motion.div>
+                  ) : (
+                    <>Commit Memory <ArrowUpRight className="w-4 h-4" /></>
+                  )}
                 </motion.button>
               </div>
             </div>
@@ -238,7 +267,13 @@ function App() {
                   disabled={loading || !query}
                   className="absolute right-2 top-2 bottom-2 aspect-square bg-purple-600 hover:bg-purple-500 rounded-xl flex items-center justify-center transition-all disabled:opacity-20"
                 >
-                  <Search className="w-4 h-4 text-white" />
+                  {loading ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+                      <RefreshCw className="w-4 h-4 text-white" />
+                    </motion.div>
+                  ) : (
+                    <Search className="w-4 h-4 text-white" />
+                  )}
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -363,7 +398,7 @@ function App() {
             </div>
           </div>
         </motion.footer>
-      </motion.div>
+      </div>
     </div>
   );
 }

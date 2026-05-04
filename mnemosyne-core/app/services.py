@@ -29,7 +29,7 @@ class ChromaStorage(IMemoryStorage):
         # Default text EF for standard text ingestion
         self.ef = embedding_functions.DefaultEmbeddingFunction()
         self.collection = self.client.get_or_create_collection(
-            name="memories", 
+            name="memories_v2", 
             embedding_function=self.ef
         )
         self.clip = CLIPEngine()
