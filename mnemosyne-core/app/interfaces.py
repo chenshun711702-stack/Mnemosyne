@@ -4,15 +4,19 @@ from .schemas import MemoryEntry, MemoryResponse
 
 class IMemoryStorage(ABC):
     @abstractmethod
-    def add_memory(self, entry: MemoryEntry) -> str:
+    def add_memory(self, entry: MemoryEntry, encryptor=None) -> str:
         pass
 
     @abstractmethod
-    def search_memories(self, query: str, n_results: int) -> List[MemoryResponse]:
+    def add_image_memory(self, image_bytes: bytes, metadata: dict, encryptor=None) -> str:
         pass
 
     @abstractmethod
-    def list_memories(self, limit: int) -> List[MemoryResponse]:
+    def search_memories(self, query: str, n_results: int, encryptor=None) -> List[MemoryResponse]:
+        pass
+
+    @abstractmethod
+    def list_memories(self, limit: int, encryptor=None) -> List[MemoryResponse]:
         pass
 
     @abstractmethod

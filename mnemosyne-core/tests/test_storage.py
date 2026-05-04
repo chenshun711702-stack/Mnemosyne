@@ -34,3 +34,25 @@ def test_add_and_search_memory(temp_storage):
     assert len(results) == 1
     assert "artificial intelligence" in results[0].content
     assert results[0].metadata["category"] == "tech"
+
+def test_persistence():
+    test_path = "./data/test_persist"
+    if os.path.exists(test_path):
+        shutil.rmtree(test_path)
+    
+    # 1. First instance: add memory
+    storage1 = ChromaStorage(path=test_path)
+    entry = MemoryEntry(content="Persistent memory", metadata=MemoryMetadata(category="test"))
+    storage1.add_memory(entry)
+    del storage1 # Force close
+    
+    # 2. Second instance: verify memory exists
+    storage2 = ChromaStorage(path=test_path)
+    results = storage2.search_memories("Persistent memory", n_results=1)
+    assert len(results) == 1
+    assert results[0].content == "Persistent memory"
+    
+    # Clean up
+    if os.path.exists(test_path):
+        shutil.rmtree(test_path)
+

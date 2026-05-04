@@ -41,6 +41,16 @@ Generates a response using RAG.
 *   **Request**: `ChatRequest`
 *   **Response**: `{"answer": str, "sources": list}`
 
+### GET `/memories`
+Lists all memories (with pagination).
+*   **Parameters**: `limit` (int, optional)
+*   **Response**: List of `MemoryResponse` objects.
+
+### DELETE `/memories/{memory_id}`
+Deletes a specific memory.
+*   **Parameters**: `memory_id` (str, path)
+*   **Response**: `{"status": "success" | "failed"}`
+
 ## 3. Vector Database Schema
 *   **Collection Name**: `memories`
 *   **Distance Metric**: Cosine Similarity

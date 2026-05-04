@@ -4,3 +4,8 @@ chromadb
 openai
 pydantic
 python-dotenv
+tenacity
+cryptography
+sentence-transformers
+Pillow
+python-multipart

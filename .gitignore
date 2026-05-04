@@ -1,22 +1,24 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-env/
-.env
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Node / React
-node_modules/
-dist/
+node_modules
+dist
 dist-ssr
 *.local
 
-# Mnemosyne Specific
-Mnemosyne/mnemosyne-core/data/
-*.log
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-
-# IDEs
-.vscode/
-.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

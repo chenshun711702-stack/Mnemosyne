@@ -8,8 +8,8 @@ export default {
     extend: {
       colors: {
         mnemo: {
-          bg: '#0a0a0b',
-          card: '#141417',
+          bg: '#030303',
+          card: '#0a0a0b',
           primary: '#3b82f6',
           secondary: '#8b5cf6',
           text: '#f4f4f5'

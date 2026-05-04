@@ -17,6 +17,7 @@ class MemoryResponse(BaseModel):
     content: str
     metadata: Dict[str, Any]
     distance: Optional[float] = None
+    base64_content: Optional[str] = None
 
 class QueryRequest(BaseModel):
     query: str

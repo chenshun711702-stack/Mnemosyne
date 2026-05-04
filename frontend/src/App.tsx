@@ -1,12 +1,31 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Brain, Send, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon } from 'lucide-react';
 
 interface Memory {
   id: string;
   content: string;
   metadata: any;
+  base64_content?: string;
 }
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 100 }
+  }
+};
 
 function App() {
   const [content, setContent] = useState('');
@@ -15,10 +34,15 @@ function App() {
   const [sources, setSources] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [encryptionKey, setEncryptionKey] = useState('');
+
+  const getHeaders = () => {
+    return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
+  };
 
   const fetchMemories = async () => {
     try {
-      const res = await axios.get('/api/memories');
+      const res = await axios.get('/api/memories', { headers: getHeaders() });
       setMemories(res.data);
     } catch (err) {
       console.error('Failed to fetch memories', err);
@@ -27,18 +51,40 @@ function App() {
 
   useEffect(() => {
     fetchMemories();
-  }, []);
+  }, [encryptionKey]);
 
   const handleIngest = async () => {
     if (!content) return;
     setLoading(true);
     try {
-      await axios.post('/api/ingest', { content, metadata: { location: "Local Browser" } });
+      await axios.post('/api/ingest', 
+        { content, metadata: { location: "Local Browser" } },
+        { headers: getHeaders() }
+      );
       setContent('');
       fetchMemories();
     } catch (err) {
       console.error(err);
       alert('Encoding Failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      await axios.post('/api/ingest/image', formData, { 
+        headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' } 
+      });
+      fetchMemories();
+    } catch (err) {
+      console.error(err);
+      alert('Visual Encoding Failed');
     } finally {
       setLoading(false);
     }
@@ -58,7 +104,10 @@ function App() {
     if (!query) return;
     setLoading(true);
     try {
-      const res = await axios.post('/api/chat', { message: query });
+      const res = await axios.post('/api/chat', 
+        { message: query },
+        { headers: getHeaders() }
+      );
       setChatAnswer(res.data.answer);
       setSources(res.data.sources || []);
     } catch (err) {
@@ -70,159 +119,253 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-mnemo-bg text-mnemo-text p-6 md:p-12 font-sans">
-      <header className="max-w-4xl mx-auto mb-16 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-mnemo-primary/20 rounded-2xl">
-            <Brain className="w-8 h-8 text-mnemo-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tighter text-white">MNEMOSYNE</h1>
-            <p className="text-zinc-500 text-sm uppercase tracking-widest font-medium">Cognitive Archiving System</p>
-          </div>
-        </div>
-        <div className="hidden md:block">
-          <div className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full flex items-center gap-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Neural Link Active</span>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto space-y-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Ingestion Section */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 mb-2 text-zinc-400">
-              <Sparkles className="w-4 h-4" />
-              <h2 className="text-xs font-bold uppercase tracking-widest">Ingest Memory</h2>
+    <div className="min-h-screen p-4 md:p-8 lg:p-12 overflow-x-hidden">
+      <motion.div 
+        className="max-w-7xl mx-auto space-y-8"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        {/* Header Bento */}
+        <motion.header className="grid grid-cols-1 md:grid-cols-12 gap-6" variants={itemVariants}>
+          <div className="md:col-span-8 bento-card">
+            <div className="bento-inner flex-row items-center justify-between">
+              <div className="flex items-center gap-6">
+                <motion.div 
+                  className="bg-blue-600/20 p-4 rounded-3xl border border-blue-500/20"
+                  whileHover={{ rotate: 15, scale: 1.1 }}
+                >
+                  <Brain className="w-8 h-8 text-blue-500" />
+                </motion.div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.3.0-BENTO-IMAGE</p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                <LayoutGrid className="w-4 h-4 text-zinc-500" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase">Multi-Modal Grid</span>
+              </div>
             </div>
-            <div className="bg-mnemo-card border border-zinc-800 p-6 rounded-3xl shadow-2xl">
+          </div>
+          <div className="md:col-span-4 bento-card">
+            <div className="bento-inner justify-center">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col flex-1">
+                  <span className="text-[9px] text-zinc-500 font-black uppercase mb-1">Neural Lock</span>
+                  <input 
+                    type="password"
+                    value={encryptionKey}
+                    onChange={(e) => setEncryptionKey(e.target.value)}
+                    placeholder="UNSECURED"
+                    className="bg-transparent text-sm text-white focus:outline-none font-mono placeholder:text-red-500/30"
+                  />
+                </div>
+                <motion.div 
+                  className={`p-3 rounded-2xl ${encryptionKey ? 'bg-blue-500/10 text-blue-500' : 'bg-red-500/10 text-red-500'}`}
+                  animate={{ scale: encryptionKey ? [1, 1.1, 1] : 1 }}
+                  transition={{ repeat: encryptionKey ? Infinity : 0, duration: 2 }}
+                >
+                  <Shield className="w-5 h-5" />
+                </motion.div>
+              </div>
+            </div>
+          </div>
+        </motion.header>
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(300px,auto)]">
+          {/* Ingestion Tile */}
+          <motion.section className="md:col-span-7 bento-card" variants={itemVariants}>
+            <div className="bento-inner">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-500" />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Ingestion</h2>
+                </div>
+                <span className="text-[9px] px-2 py-1 bg-white/5 rounded-lg text-zinc-600 font-bold uppercase tracking-tighter">Ready</span>
+              </div>
               <textarea 
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="What are you thinking about right now?"
-                className="w-full h-40 bg-transparent border-none focus:ring-0 text-lg resize-none placeholder:text-zinc-700 text-white"
+                placeholder="Commit your thoughts to the digital consciousness..."
+                className="flex-1 bg-transparent border-none focus:ring-0 text-2xl font-light leading-relaxed resize-none placeholder:text-zinc-800 text-white custom-scrollbar mb-6"
               />
-              <div className="flex justify-between items-center mt-4">
-                <div className="flex gap-4 text-zinc-600">
-                  <MapPin className="w-4 h-4" />
-                  <Clock className="w-4 h-4" />
+              <div className="flex items-center justify-between">
+                <div className="flex gap-4">
+                  <label className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer flex items-center justify-center">
+                    <ImageIcon className="w-4 h-4" />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                  </label>
+                  <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer">
+                    <Clock className="w-4 h-4" />
+                  </div>
                 </div>
-                <button 
+                <motion.button 
                   onClick={handleIngest}
-                  disabled={loading}
-                  className="bg-mnemo-primary hover:bg-blue-600 disabled:opacity-50 text-white px-6 py-2 rounded-full font-medium transition-all flex items-center gap-2"
+                  disabled={loading || !content}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-20 text-white px-8 py-4 rounded-3xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl shadow-blue-900/20 flex items-center gap-2"
                 >
-                  {loading ? 'Encoding...' : 'Store Memory'}
-                  <Send className="w-4 h-4" />
-                </button>
+                  {loading ? 'Processing' : 'Commit Memory'}
+                  <ArrowUpRight className="w-4 h-4" />
+                </motion.button>
               </div>
             </div>
-          </section>
+          </motion.section>
 
-          {/* Query Section */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 mb-2 text-zinc-400">
-              <Search className="w-4 h-4" />
-              <h2 className="text-xs font-bold uppercase tracking-widest">Retrieve & Synthesize</h2>
-            </div>
-            <div className="bg-mnemo-card border border-zinc-800 p-6 rounded-3xl shadow-2xl flex flex-col h-[280px]">
-              <div className="flex gap-3 mb-4">
+          {/* AI/Retreival Tile */}
+          <motion.section className="md:col-span-5 bento-card" variants={itemVariants}>
+            <div className="bento-inner">
+              <div className="flex items-center gap-2 mb-6">
+                <Search className="w-4 h-4 text-purple-500" />
+                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Synthesis</h2>
+              </div>
+              <div className="relative mb-6">
                 <input 
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleChat()}
-                  placeholder="Ask your digital twin..."
-                  className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-5 py-2 focus:outline-none focus:border-mnemo-primary transition-colors text-white"
+                  placeholder="Query your archive..."
+                  className="w-full bg-white/5 border border-white/5 rounded-2xl px-6 py-4 focus:outline-none focus:border-purple-500/50 transition-all text-white"
                 />
                 <button 
                   onClick={handleChat}
-                  className="p-2 bg-mnemo-secondary rounded-full hover:scale-110 transition-transform"
+                  disabled={loading || !query}
+                  className="absolute right-2 top-2 bottom-2 aspect-square bg-purple-600 hover:bg-purple-500 rounded-xl flex items-center justify-center transition-all disabled:opacity-20"
                 >
-                  <Search className="w-5 h-5 text-white" />
+                  <Search className="w-4 h-4 text-white" />
                 </button>
               </div>
-              
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {chatAnswer ? (
-                  <div className="space-y-4">
-                    <p className="text-zinc-300 leading-relaxed italic">"{chatAnswer}"</p>
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-4"
+                  >
+                    <div className="p-5 bg-purple-500/10 border border-purple-500/10 rounded-[1.5rem]">
+                      <p className="text-zinc-300 text-sm leading-relaxed font-light italic">"{chatAnswer}"</p>
+                    </div>
                     {sources.length > 0 && (
-                      <div className="pt-4 border-t border-zinc-800">
-                        <p className="text-[10px] uppercase text-zinc-600 font-bold mb-2">Based on memories:</p>
-                        <ul className="space-y-1">
-                          {sources.map((s, i) => (
-                            <li key={i} className="text-[11px] text-zinc-500 truncate">• {s}</li>
-                          ))}
-                        </ul>
+                      <div className="flex flex-wrap gap-2">
+                        {sources.map((s, i) => (
+                          <span key={i} className="px-3 py-1 bg-white/5 border border-white/5 rounded-lg text-[9px] text-zinc-600 font-bold uppercase truncate max-w-[150px]">
+                            {s === '[Visual Memory]' ? 'Visual Fragment' : `Fragment ${i + 1}`}
+                          </span>
+                        ))}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-zinc-700">
-                    <Brain className="w-12 h-12 mb-2 opacity-10" />
-                    <p className="text-xs italic">Waiting for query...</p>
+                  <div className="h-full flex flex-col items-center justify-center text-zinc-800 space-y-4">
+                    <div className="p-6 bg-white/[0.02] rounded-full">
+                      <Zap className="w-8 h-8 opacity-10" />
+                    </div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 italic">Awaiting Request</p>
                   </div>
                 )}
               </div>
             </div>
-          </section>
+          </motion.section>
+
+          {/* Stream Tile (Long) */}
+          <motion.section className="md:col-span-12 lg:col-span-12 bento-card" variants={itemVariants}>
+            <div className="bento-inner">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-zinc-500" />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Neural Stream</h2>
+                </div>
+                <motion.button 
+                  onClick={fetchMemories}
+                  whileHover={{ rotate: 180 }}
+                  transition={{ duration: 0.5 }}
+                  className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-500 transition-all"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </motion.button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar">
+                {memories.length > 0 ? (
+                  memories.map((m) => (
+                    <motion.div 
+                      key={m.id} 
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="group relative p-4 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.04] hover:border-white/10 transition-all h-[240px] flex flex-col"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className={`w-2 h-2 rounded-full ${m.metadata.is_encrypted ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-zinc-800'}`}></div>
+                        <button 
+                          onClick={() => handleDelete(m.id)}
+                          className="opacity-0 group-hover:opacity-100 p-2 text-zinc-700 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      {m.base64_content ? (
+                        <div className="flex-1 mb-3 overflow-hidden rounded-2xl border border-white/5">
+                          <img 
+                            src={`data:image/png;base64,${m.base64_content}`} 
+                            alt="Visual Memory" 
+                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                          />
+                        </div>
+                      ) : (
+                        <p className="flex-1 text-sm text-zinc-400 font-light line-clamp-5 mb-3 group-hover:text-zinc-200 transition-colors">
+                          {m.content}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="text-[9px] font-black uppercase text-zinc-700 tracking-widest">{m.metadata.is_image ? 'Visual' : (m.metadata.category || 'Fragment')}</span>
+                        <span className="text-[9px] font-mono text-zinc-800">
+                          {m.metadata.timestamp ? new Date(m.metadata.timestamp).toLocaleDateString() : 'Historical'}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-[2.5rem]">
+                    <p className="text-zinc-800 text-[10px] font-black uppercase tracking-[0.4em]">Neural Core Standby</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.section>
         </div>
 
-        {/* Memory Stream Section */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Clock className="w-4 h-4" />
-              <h2 className="text-xs font-bold uppercase tracking-widest">Memory Stream</h2>
+        {/* Footer Bento */}
+        <motion.footer className="grid grid-cols-1 md:grid-cols-3 gap-6" variants={itemVariants}>
+          <div className="bento-card">
+            <div className="bento-inner py-4 flex-row items-center gap-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+              <span className="text-[9px] font-black uppercase text-zinc-600 tracking-widest">Multi-Modal Sync Active</span>
             </div>
-            <button 
-              onClick={fetchMemories}
-              className="text-zinc-600 hover:text-mnemo-primary transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {memories.length > 0 ? (
-              memories.map((m) => (
-                <div key={m.id} className="group bg-mnemo-card/50 border border-zinc-800/50 p-4 rounded-2xl hover:border-zinc-700 transition-all">
-                  <div className="flex justify-between items-start gap-4">
-                    <p className="text-sm text-zinc-400 leading-relaxed line-clamp-2">{m.content}</p>
-                    <button 
-                      onClick={() => handleDelete(m.id)}
-                      className="opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-500 transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="mt-3 flex items-center gap-3">
-                    <span className="text-[10px] px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-zinc-500 uppercase font-bold tracking-tighter">
-                      {m.metadata.category || 'Fragment'}
-                    </span>
-                    <span className="text-[9px] text-zinc-700 font-mono">
-                      {m.metadata.timestamp ? new Date(m.metadata.timestamp).toLocaleDateString() : 'Historical'}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-2 text-center py-12 border border-dashed border-zinc-800 rounded-3xl">
-                <p className="text-zinc-700 text-xs italic uppercase tracking-widest">No memories indexed in the archive yet.</p>
-              </div>
-            )}
+          <div className="bento-card">
+            <div className="bento-inner py-4 items-center">
+              <span className="text-[9px] font-black uppercase text-zinc-800 tracking-[0.5em]">Mnemosyne &copy; 2026</span>
+            </div>
           </div>
-        </section>
-      </main>
-
-      <footer className="max-w-4xl mx-auto mt-20 pb-12 pt-8 border-t border-zinc-900 text-center text-zinc-600 text-[10px] tracking-widest uppercase font-medium">
-        Encrypted | Local-First | Eternal Preservation
-      </footer>
+          <div className="bento-card">
+            <div className="bento-inner py-4 flex-row items-center justify-center gap-8 text-[9px] font-black uppercase text-zinc-700 tracking-widest">
+              <span className="hover:text-white transition-colors cursor-pointer">Terms</span>
+              <span className="hover:text-white transition-colors cursor-pointer">Privacy</span>
+              <Github className="w-4 h-4" />
+            </div>
+          </div>
+        </motion.footer>
+      </motion.div>
     </div>
   );
 }
-
-export default App;
 
 export default App;

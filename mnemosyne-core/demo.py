@@ -42,5 +42,18 @@ def run_sdd_demo():
     else:
         print("❌ Chat failed. Make sure server is running.")
 
+    # 4. List and Delete
+    print("\n[Phase 4] Testing List and Delete...")
+    res = requests.get(f"{BASE_URL}/memories", params={"limit": 5})
+    if res.status_code == 200:
+        mems = res.json()
+        print(f"📋 Found {len(mems)} memories in storage.")
+        if mems:
+            mid = mems[0]['id']
+            print(f"🗑️ Deleting memory: {mid}")
+            del_res = requests.delete(f"{BASE_URL}/memories/{mid}")
+            print(f"✅ Delete status: {del_res.json()['status']}")
+
+
 if __name__ == "__main__":
     run_sdd_demo()
