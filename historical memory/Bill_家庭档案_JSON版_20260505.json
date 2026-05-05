@@ -1,0 +1,46 @@
+{
+  "title": "Bill 家庭档案",
+  "version": "精简版",
+  "generated": "2026-05-05",
+  "family": {
+    "bill": {
+      "age": 48,
+      "occupation": "外企",
+      "education": "上海财经大学研究生",
+      "income": "100-200万",
+      "language": "英语"
+    },
+    "son": {
+      "age": 18,
+      "school": "Imperial College London (IC)",
+      "major": "EEE (电气与电子工程)"
+    },
+    "daughter": {
+      "name": "李雅",
+      "age": 11,
+      "status": "2026年初一"
+    }
+  },
+  "education_plan": {
+    "target": "A-Level",
+    "region": "港/新",
+    "goal": "拿香港或新加坡身份降录取门槛",
+    "paths": {
+      "香港": "DSE或高考",
+      "新加坡": "AEIS→O-Level→A-Level"
+    }
+  },
+  "parenting": {
+    "style": "家长制 → 平等式/观察支持型",
+    "awareness": [
+      "先处理情绪再解决问题",
+      "爱与回报的矛盾",
+      "踢猫效应",
+      "觉察时机"
+    ]
+  },
+  "todos": [
+    "女儿港/新身份申请操作路径",
+    "亲子回忆录写作"
+  ]
+}

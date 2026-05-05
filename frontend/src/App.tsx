@@ -193,13 +193,14 @@ function App() {
     
     try {
       const response = await axios.post('/api/import', formData, {
-        headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' }
+        headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' },
+        timeout: 60000 // 60s for large archives
       });
       triggerSuccess(`Imported ${response.data.imported_count} Memories`);
       fetchMemories();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Import Failed');
+      alert('Import Failed: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
