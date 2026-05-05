@@ -147,6 +147,20 @@ class OpenAIEngine(ILLMEngine):
             # Fallback to base if small fails to load
             self.whisper_model = whisper.load_model("base")
 
+    def analyze_sentiment(self, text: str) -> str:
+        """Analyzes sentiment using GPT-4o-mini."""
+        if not self.client:
+            return "Neutral"
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": "You are a sentiment analyzer. Respond with only one word: Positive, Negative, or Neutral."},
+                          {"role": "user", "content": text}]
+            )
+            return response.choices[0].message.content.strip()
+        except Exception:
+            return "Neutral"
+
     def transcribe_audio(self, audio_bytes: bytes) -> str:
         """Transcribes audio using local Whisper model with contextual prompting and language detection."""
         with open("whisper_debug.log", "a") as f:

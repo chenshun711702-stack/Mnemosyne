@@ -1,13 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload, Smile, Frown, Meh } from 'lucide-react';
 import { useReactMediaRecorder } from 'react-media-recorder-2';
 
 interface Memory {
   id: string;
   content: string;
-  metadata: any;
+  metadata: {
+    location?: string;
+    category?: string;
+    sentiment?: string;
+    timestamp?: string;
+    is_encrypted?: boolean;
+    is_image?: boolean;
+    source?: string;
+  };
   base64_content?: string;
 }
 
@@ -49,6 +57,19 @@ function App() {
     setSuccessSuccessMessage(msg || 'Neural Fragment Synchronized');
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const getVibeSummary = () => {
+    if (memories.length === 0) return "Standby";
+    const counts = memories.reduce((acc: any, m) => {
+      const s = m.metadata.sentiment || 'Neutral';
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+    
+    if (counts.Positive > (counts.Negative || 0)) return "Elevated";
+    if (counts.Negative > (counts.Positive || 0)) return "Subdued";
+    return "Balanced";
   };
 
   const handleVoiceUpload = async (blobUrl: string) => {
@@ -213,6 +234,14 @@ function App() {
     }
   };
 
+  const getSentimentIcon = (sentiment?: string) => {
+    switch(sentiment) {
+      case 'Positive': return <Smile className="w-3 h-3 text-green-500" />;
+      case 'Negative': return <Frown className="w-3 h-3 text-red-500" />;
+      default: return <Meh className="w-3 h-3 text-zinc-500" />;
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 lg:p-12 overflow-x-hidden">
       <AnimatePresence>
@@ -248,12 +277,15 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.5.2-PORTABLE-READY</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.6.0-VIBE-CHECK</p>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
-                <Edit3 className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Portable Archive Mode</span>
+              <div className="hidden sm:flex items-center gap-4">
+                <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Vibe: {getVibeSummary()}</span>
+                </div>
+                <LayoutGrid className="w-4 h-4 text-zinc-500" />
               </div>
             </div>
           </div>
@@ -343,9 +375,15 @@ function App() {
           {/* AI/Retreival Tile */}
           <motion.section className="md:col-span-5 bento-card" variants={itemVariants}>
             <div className="bento-inner">
-              <div className="flex items-center gap-2 mb-6">
-                <Search className="w-4 h-4 text-purple-500" />
-                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Synthesis</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-purple-500" />
+                  <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Synthesis</h2>
+                </div>
+                <div className="flex items-center gap-1">
+                   {getSentimentIcon(getVibeSummary() === 'Elevated' ? 'Positive' : (getVibeSummary() === 'Subdued' ? 'Negative' : 'Neutral'))}
+                   <span className="text-[8px] font-black text-zinc-600 uppercase">{getVibeSummary()}</span>
+                </div>
               </div>
               <div className="relative mb-6">
                 <input 
@@ -362,7 +400,7 @@ function App() {
                 >
                   {loading ? (
                     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                      <RefreshCw className="w-4 h-4 text-white" />
+                      <RefreshCw className="w-4 h-4" />
                     </motion.div>
                   ) : (
                     <Search className="w-4 h-4 text-white" />
@@ -429,7 +467,10 @@ function App() {
                       className="group relative p-4 bg-white/[0.02] border border-white/5 rounded-3xl hover:bg-white/[0.04] hover:border-white/10 transition-all h-[240px] flex flex-col"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <div className={`w-2 h-2 rounded-full ${m.metadata.is_encrypted ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-zinc-800'}`}></div>
+                        <div className="flex gap-2">
+                           <div className={`w-2 h-2 rounded-full ${m.metadata.is_encrypted ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-zinc-800'}`}></div>
+                           {getSentimentIcon(m.metadata.sentiment)}
+                        </div>
                         <button 
                           onClick={() => handleDelete(m.id)}
                           className="opacity-0 group-hover:opacity-100 p-2 text-zinc-700 hover:text-red-500 transition-all"

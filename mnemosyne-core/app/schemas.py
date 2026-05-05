@@ -5,8 +5,11 @@ from datetime import datetime
 class MemoryMetadata(BaseModel):
     location: Optional[str] = None
     category: Optional[str] = None
-    sentiment: Optional[float] = None
+    sentiment: Optional[str] = None
     timestamp: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
+    is_encrypted: bool = False
+    is_image: bool = False
+    source: Optional[str] = "text"
 
 class MemoryEntry(BaseModel):
     content: str
