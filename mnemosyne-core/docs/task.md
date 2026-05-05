@@ -14,15 +14,14 @@
 - [x] Implement local-first data encryption (User-side key management).
 - [x] Phase 3: Image-to-Vector support using local CLIP model.
 - [x] Phase 3: Voice-to-Memory using **Local Whisper Model** (`small`).
-- [x] **Cognitive Review Loop**: Added a two-step "Transcribe then Review" flow for voice ingestion.
-- [x] Upgraded Whisper model to `small` for improved recognition accuracy.
-- [x] Multi-language support (EN/ZH) for voice recognition.
+- [x] Cognitive Review Loop for voice ingestion.
+- [x] **Priority 2: Dockerization**: Created Dockerfiles and Compose setup for production deployment.
 
 ## 🟡 In Progress
-- [ ] Optimization of local model loading times.
-- [ ] Preparation for Priority 2: Dockerization.
+- [ ] Optimizing Docker image sizes.
+- [ ] Preparing Export/Import functionality.
 
 ## 🔴 Backlog (To Do)
-- [ ] Task: Dockerization for edge-server deployment.
 - [ ] Task: Export/Import functionality for encrypted archives.
 - [ ] Task: Sentiment trend analysis in Synthesis.
+- [ ] Task: Edge-server auto-discovery.

@@ -16,6 +16,6 @@
 - [x] Integrate Whisper for voice-to-memory ingestion (Local-first).
 - [x] Implement cognitive review loop for voice data.
 
-## Phase 4: Deployment & Portability (Next)
-- [ ] Deploy as a private edge-server (Dockerized).
+## Phase 4: Deployment & Portability (Current)
+- [x] Deploy as a private edge-server (Dockerized).
 - [ ] Implement archive export/import (JSON/Encrypted).
