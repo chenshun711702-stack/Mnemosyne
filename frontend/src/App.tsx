@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload } from 'lucide-react';
 import { useReactMediaRecorder } from 'react-media-recorder-2';
 
 interface Memory {
@@ -38,6 +38,8 @@ function App() {
   const [encryptionKey, setEncryptionKey] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessSuccessMessage] = useState('Neural Fragment Synchronized');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getHeaders = () => {
     return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
@@ -156,6 +158,33 @@ function App() {
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await axios.post('/api/import', formData, {
+        headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' }
+      });
+      triggerSuccess(`Imported ${response.data.imported_count} Memories`);
+      fetchMemories();
+    } catch (err) {
+      console.error(err);
+      alert('Import Failed');
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Forget this memory?')) return;
     try {
@@ -219,12 +248,12 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.5.1-ARCHIVE-READY</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.5.2-PORTABLE-READY</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
                 <Edit3 className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cognitive Core Active</span>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Portable Archive Mode</span>
               </div>
             </div>
           </div>
@@ -455,12 +484,22 @@ function App() {
             </div>
           </div>
           <div className="bento-card">
-            <div className="bento-inner py-4 flex-row items-center justify-center gap-8 text-[9px] font-black uppercase text-zinc-700 tracking-widest">
+            <div className="bento-inner py-4 flex-row items-center justify-center gap-4 text-[9px] font-black uppercase text-zinc-700 tracking-widest">
               <span onClick={handleExport} className="hover:text-white transition-colors cursor-pointer flex items-center gap-2">
-                <Download className="w-3 h-3" /> Archive Export
+                <Download className="w-3 h-3" /> Export
               </span>
-              <span className="hover:text-white transition-colors cursor-pointer">Security</span>
-              <Github className="w-4 h-4" />
+              <div className="w-[1px] h-4 bg-white/10"></div>
+              <span onClick={handleImportClick} className="hover:text-white transition-colors cursor-pointer flex items-center gap-2">
+                <Upload className="w-3 h-3" /> Import
+              </span>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImportFile} 
+                accept=".json" 
+                className="hidden" 
+              />
+              <Github className="w-4 h-4 ml-4" />
             </div>
           </div>
         </motion.footer>

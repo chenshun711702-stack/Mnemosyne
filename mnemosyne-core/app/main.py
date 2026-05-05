@@ -112,6 +112,30 @@ async def export_archive(encryptor: Optional[EncryptionManager] = Depends(get_en
         "memories": [m.model_dump() for m in memories]
     }
 
+@app.post("/import")
+async def import_archive(
+    file: UploadFile = File(...),
+    encryptor: Optional[EncryptionManager] = Depends(get_encryptor)
+):
+    import json
+    content = await file.read()
+    data = json.loads(content)
+    
+    memories = data.get("memories", [])
+    count = 0
+    for m in memories:
+        # Re-construct entry
+        # Note: We preserve metadata but generate new IDs to avoid collisions
+        entry = MemoryEntry(
+            content=m["content"],
+            metadata=m["metadata"]
+        )
+        # add_memory handles embedding generation automatically
+        storage.add_memory(entry, encryptor=encryptor)
+        count += 1
+        
+    return {"status": "success", "imported_count": count}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
