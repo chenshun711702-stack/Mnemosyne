@@ -2,6 +2,7 @@ import os
 import base64
 import chromadb
 import tempfile
+import whisper
 from chromadb.utils import embedding_functions
 from openai import OpenAI, RateLimitError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -40,7 +41,7 @@ class ChromaStorage(IMemoryStorage):
         clean_metadata = {k: v for k, v in entry.metadata.model_dump().items() if v is not None}
         
         content_to_store = entry.content
-        # We still use CLIP for everything now to maintain cross-modal search
+        # Use CLIP for cross-modal search
         embedding = self.clip.get_text_embedding(entry.content)
 
         if encryptor:
@@ -139,24 +140,28 @@ class OpenAIEngine(ILLMEngine):
             api_key=api_key,
             base_url=base_url or "https://api.openai.com/v1"
         ) if api_key else None
+        # Local whisper model for maximum reliability
+        self.whisper_model = whisper.load_model("base")
 
     def transcribe_audio(self, audio_bytes: bytes) -> str:
-        """Transcribes audio using OpenAI Whisper."""
-        if not self.client:
-            return "[Error: OpenAI Client not configured for transcription]"
+        """Transcribes audio using local Whisper model."""
+        with open("whisper_debug.log", "a") as f:
+            f.write(f"\n[{datetime.now()}] Transcription started. Bytes: {len(audio_bytes)}")
         
-        # Whisper requires a file-like object with a proper extension
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
             tmp_file.write(audio_bytes)
             tmp_file_path = tmp_file.name
         
         try:
-            with open(tmp_file_path, "rb") as audio_file:
-                transcript = self.client.audio.transcriptions.create(
-                    model="whisper-1", 
-                    file=audio_file
-                )
-            return transcript.text
+            result = self.whisper_model.transcribe(tmp_file_path)
+            transcript = result["text"].strip()
+            with open("whisper_debug.log", "a") as f:
+                f.write(f"\n[{datetime.now()}] Transcription success: {transcript[:50]}...")
+            return transcript
+        except Exception as e:
+            with open("whisper_debug.log", "a") as f:
+                f.write(f"\n[{datetime.now()}] Transcription error: {str(e)}")
+            return f"[Error: Local transcription failed: {str(e)}]"
         finally:
             if os.path.exists(tmp_file_path):
                 os.remove(tmp_file_path)

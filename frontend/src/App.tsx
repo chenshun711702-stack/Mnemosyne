@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3 } from 'lucide-react';
 import { useReactMediaRecorder } from 'react-media-recorder-2';
 
 interface Memory {
@@ -37,17 +37,55 @@ function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [encryptionKey, setEncryptionKey] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessSuccessMessage] = useState('Neural Fragment Synchronized');
+
+  const getHeaders = () => {
+    return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
+  };
+
+  const triggerSuccess = (msg?: string) => {
+    setSuccessSuccessMessage(msg || 'Neural Fragment Synchronized');
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const handleVoiceUpload = async (blobUrl: string) => {
+    setLoading(true);
+    try {
+      const blob = await fetch(blobUrl).then(r => r.blob());
+      const formData = new FormData();
+      const audioFile = new File([blob], "voice_memory.wav", { type: "audio/wav" });
+      formData.append('file', audioFile);
+      
+      const response = await axios.post('/api/transcribe', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000 
+      });
+      
+      if (response.data.status === 'success') {
+        setContent(response.data.transcript);
+        triggerSuccess('Voice Transcribed - Review and Commit');
+      } else {
+        alert('Transcription Error: ' + response.data.message);
+      }
+    } catch (err: any) {
+      console.error("Transcription Failed:", err);
+      alert('Voice Processing Failed: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const {
     status,
     startRecording,
     stopRecording,
-    mediaBlobUrl,
-  } = useReactMediaRecorder({ audio: true });
-
-  const getHeaders = () => {
-    return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
-  };
+  } = useReactMediaRecorder({ 
+    audio: true,
+    onStop: (blobUrl) => {
+      if (blobUrl) handleVoiceUpload(blobUrl);
+    }
+  });
 
   const fetchMemories = async () => {
     try {
@@ -62,18 +100,6 @@ function App() {
     fetchMemories();
   }, [encryptionKey]);
 
-  // Handle mediaBlobUrl changes (when recording stops)
-  useEffect(() => {
-    if (mediaBlobUrl) {
-      handleVoiceUpload();
-    }
-  }, [mediaBlobUrl]);
-
-  const triggerSuccess = () => {
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
   const handleIngest = async () => {
     if (!content) return;
     setLoading(true);
@@ -83,7 +109,7 @@ function App() {
         { headers: getHeaders() }
       );
       setContent('');
-      triggerSuccess();
+      triggerSuccess('Memory Archived Successfully');
       fetchMemories();
     } catch (err) {
       console.error(err);
@@ -103,33 +129,11 @@ function App() {
       await axios.post('/api/ingest/image', formData, { 
         headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' } 
       });
-      triggerSuccess();
+      triggerSuccess('Visual Memory Archived');
       fetchMemories();
     } catch (err) {
       console.error(err);
       alert('Visual Encoding Failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVoiceUpload = async () => {
-    if (!mediaBlobUrl) return;
-    setLoading(true);
-    try {
-      const audioBlob = await fetch(mediaBlobUrl).then(r => r.blob());
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'voice_memory.wav');
-      
-      await axios.post('/api/ingest/voice', formData, { 
-        headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' } 
-      });
-      
-      triggerSuccess();
-      fetchMemories();
-    } catch (err) {
-      console.error(err);
-      alert('Voice Encoding Failed');
     } finally {
       setLoading(false);
     }
@@ -171,10 +175,10 @@ function App() {
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-black uppercase text-[10px] tracking-widest"
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 font-black uppercase text-[10px] tracking-widest"
           >
             <CheckCircle2 className="w-4 h-4" />
-            Neural Fragment Synchronized
+            {successMessage}
           </motion.div>
         )}
       </AnimatePresence>
@@ -198,12 +202,12 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.4.0-VOICE-SYNC</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.5.0-REVIEW-LOOP</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
-                <LayoutGrid className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Multi-Sensory Core</span>
+                <Edit3 className="w-4 h-4 text-zinc-500" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cognitive Review Active</span>
               </div>
             </div>
           </div>
@@ -249,7 +253,7 @@ function App() {
               <textarea 
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Commit your thoughts to the digital consciousness..."
+                placeholder="Transcribe or type your thoughts..."
                 className="flex-1 bg-transparent border-none focus:ring-0 text-2xl font-light leading-relaxed resize-none placeholder:text-zinc-800 text-white custom-scrollbar mb-6"
               />
               <div className="flex items-center justify-between">
@@ -257,7 +261,8 @@ function App() {
                   {/* Voice Record Button */}
                   <button 
                     onClick={status === 'recording' ? stopRecording : startRecording}
-                    className={`p-3 rounded-2xl border transition-all duration-500 flex items-center justify-center ${status === 'recording' ? 'bg-red-500/20 border-red-500/50 text-red-500 animate-pulse' : 'bg-white/5 border-white/5 text-zinc-600 hover:text-white'}`}
+                    disabled={loading}
+                    className={`p-3 rounded-2xl border transition-all duration-500 flex items-center justify-center ${status === 'recording' ? 'bg-red-500/20 border-red-500/50 text-red-500 animate-pulse' : (loading ? 'bg-white/5 border-white/5 text-zinc-800' : 'bg-white/5 border-white/5 text-zinc-600 hover:text-white')}`}
                   >
                     {status === 'recording' ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </button>

@@ -22,6 +22,18 @@ def get_encryptor(x_encryption_key: Optional[str] = Header(None)):
         return EncryptionManager(x_encryption_key)
     return None
 
+@app.post("/transcribe")
+async def transcribe(
+    file: UploadFile = File(...)
+):
+    audio_bytes = await file.read()
+    transcript = llm.transcribe_audio(audio_bytes)
+    
+    if transcript.startswith("[Error:"):
+        return {"status": "error", "message": transcript}
+    
+    return {"status": "success", "transcript": transcript}
+
 @app.post("/ingest")
 async def ingest(entry: MemoryEntry, encryptor: Optional[EncryptionManager] = Depends(get_encryptor)):
     entry_id = storage.add_memory(entry, encryptor=encryptor)
