@@ -40,6 +40,28 @@ async def ingest_image(
     )
     return {"status": "success", "id": entry_id}
 
+@app.post("/ingest/voice")
+async def ingest_voice(
+    file: UploadFile = File(...),
+    encryptor: Optional[EncryptionManager] = Depends(get_encryptor)
+):
+    audio_bytes = await file.read()
+    
+    # 1. Transcribe via Whisper
+    transcript = llm.transcribe_audio(audio_bytes)
+    
+    if transcript.startswith("[Error:"):
+        return {"status": "error", "message": transcript}
+
+    # 2. Store as text memory
+    entry = MemoryEntry(
+        content=transcript,
+        metadata={"source": "voice", "filename": file.filename}
+    )
+    entry_id = storage.add_memory(entry, encryptor=encryptor)
+    
+    return {"status": "success", "id": entry_id, "transcript": transcript}
+
 @app.post("/query")
 async def query(request: QueryRequest, encryptor: Optional[EncryptionManager] = Depends(get_encryptor)):
     return storage.search_memories(request.query, request.n_results, encryptor=encryptor)

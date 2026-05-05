@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff } from 'lucide-react';
+import { useReactMediaRecorder } from 'react-media-recorder-2';
 
 interface Memory {
   id: string;
@@ -37,6 +38,13 @@ function App() {
   const [encryptionKey, setEncryptionKey] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const {
+    status,
+    startRecording,
+    stopRecording,
+    mediaBlobUrl,
+  } = useReactMediaRecorder({ audio: true });
+
   const getHeaders = () => {
     return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
   };
@@ -53,6 +61,13 @@ function App() {
   useEffect(() => {
     fetchMemories();
   }, [encryptionKey]);
+
+  // Handle mediaBlobUrl changes (when recording stops)
+  useEffect(() => {
+    if (mediaBlobUrl) {
+      handleVoiceUpload();
+    }
+  }, [mediaBlobUrl]);
 
   const triggerSuccess = () => {
     setShowSuccess(true);
@@ -93,6 +108,28 @@ function App() {
     } catch (err) {
       console.error(err);
       alert('Visual Encoding Failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVoiceUpload = async () => {
+    if (!mediaBlobUrl) return;
+    setLoading(true);
+    try {
+      const audioBlob = await fetch(mediaBlobUrl).then(r => r.blob());
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice_memory.wav');
+      
+      await axios.post('/api/ingest/voice', formData, { 
+        headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' } 
+      });
+      
+      triggerSuccess();
+      fetchMemories();
+    } catch (err) {
+      console.error(err);
+      alert('Voice Encoding Failed');
     } finally {
       setLoading(false);
     }
@@ -161,12 +198,12 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.3.1-BENTO-FEEDBACK</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.4.0-VOICE-SYNC</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
                 <LayoutGrid className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase">Interactive Grid</span>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Multi-Sensory Core</span>
               </div>
             </div>
           </div>
@@ -206,7 +243,7 @@ function App() {
                   <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Ingestion</h2>
                 </div>
                 <span className="text-[9px] px-2 py-1 bg-white/5 rounded-lg text-zinc-600 font-bold uppercase tracking-tighter">
-                  {loading ? 'Processing...' : 'Ready'}
+                  {status === 'recording' ? 'Listening...' : (loading ? 'Processing...' : 'Ready')}
                 </span>
               </div>
               <textarea 
@@ -217,15 +254,20 @@ function App() {
               />
               <div className="flex items-center justify-between">
                 <div className="flex gap-4">
+                  {/* Voice Record Button */}
+                  <button 
+                    onClick={status === 'recording' ? stopRecording : startRecording}
+                    className={`p-3 rounded-2xl border transition-all duration-500 flex items-center justify-center ${status === 'recording' ? 'bg-red-500/20 border-red-500/50 text-red-500 animate-pulse' : 'bg-white/5 border-white/5 text-zinc-600 hover:text-white'}`}
+                  >
+                    {status === 'recording' ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+
                   <label className={`p-3 rounded-2xl border transition-colors cursor-pointer flex items-center justify-center ${loading ? 'bg-white/5 border-white/5 text-zinc-800 pointer-events-none' : 'bg-white/5 border-white/5 text-zinc-600 hover:text-white'}`}>
                     <ImageIcon className="w-4 h-4" />
                     <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={loading} />
                   </label>
                   <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer">
                     <MapPin className="w-4 h-4" />
-                  </div>
-                  <div className="p-3 bg-white/5 rounded-2xl border border-white/5 text-zinc-600 hover:text-white transition-colors cursor-pointer">
-                    <Clock className="w-4 h-4" />
                   </div>
                 </div>
                 <motion.button 
@@ -360,7 +402,7 @@ function App() {
                       )}
 
                       <div className="flex items-center justify-between mt-auto">
-                        <span className="text-[9px] font-black uppercase text-zinc-700 tracking-widest">{m.metadata.is_image ? 'Visual' : (m.metadata.category || 'Fragment')}</span>
+                        <span className="text-[9px] font-black uppercase text-zinc-700 tracking-widest">{m.metadata.is_image ? 'Visual' : (m.metadata.source === 'voice' ? 'Voice' : (m.metadata.category || 'Fragment'))}</span>
                         <span className="text-[9px] font-mono text-zinc-800">
                           {m.metadata.timestamp ? new Date(m.metadata.timestamp).toLocaleDateString() : 'Historical'}
                         </span>
@@ -398,7 +440,7 @@ function App() {
             </div>
           </div>
         </motion.footer>
-      </div>
+      </motion.div>
     </div>
   );
 }

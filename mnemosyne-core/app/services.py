@@ -1,6 +1,7 @@
 import os
 import base64
 import chromadb
+import tempfile
 from chromadb.utils import embedding_functions
 from openai import OpenAI, RateLimitError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -138,6 +139,27 @@ class OpenAIEngine(ILLMEngine):
             api_key=api_key,
             base_url=base_url or "https://api.openai.com/v1"
         ) if api_key else None
+
+    def transcribe_audio(self, audio_bytes: bytes) -> str:
+        """Transcribes audio using OpenAI Whisper."""
+        if not self.client:
+            return "[Error: OpenAI Client not configured for transcription]"
+        
+        # Whisper requires a file-like object with a proper extension
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
+            tmp_file.write(audio_bytes)
+            tmp_file_path = tmp_file.name
+        
+        try:
+            with open(tmp_file_path, "rb") as audio_file:
+                transcript = self.client.audio.transcriptions.create(
+                    model="whisper-1", 
+                    file=audio_file
+                )
+            return transcript.text
+        finally:
+            if os.path.exists(tmp_file_path):
+                os.remove(tmp_file_path)
 
     def generate_response(self, query: str, context: list) -> str:
         context_str = "\n".join([f"- {doc}" for doc in context])

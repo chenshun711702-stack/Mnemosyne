@@ -9,3 +9,4 @@ cryptography
 sentence-transformers
 Pillow
 python-multipart
+pydub

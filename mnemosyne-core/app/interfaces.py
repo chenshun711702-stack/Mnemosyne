@@ -27,3 +27,7 @@ class ILLMEngine(ABC):
     @abstractmethod
     def generate_response(self, query: str, context: List[str]) -> str:
         pass
+
+    @abstractmethod
+    def transcribe_audio(self, audio_bytes: bytes) -> str:
+        pass
