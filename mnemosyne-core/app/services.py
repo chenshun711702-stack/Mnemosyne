@@ -140,11 +140,15 @@ class OpenAIEngine(ILLMEngine):
             api_key=api_key,
             base_url=base_url or "https://api.openai.com/v1"
         ) if api_key else None
-        # Local whisper model for maximum reliability
-        self.whisper_model = whisper.load_model("base")
+        try:
+            # Try loading small model for better accuracy
+            self.whisper_model = whisper.load_model("small")
+        except Exception:
+            # Fallback to base if small fails to load
+            self.whisper_model = whisper.load_model("base")
 
     def transcribe_audio(self, audio_bytes: bytes) -> str:
-        """Transcribes audio using local Whisper model."""
+        """Transcribes audio using local Whisper model with contextual prompting and language detection."""
         with open("whisper_debug.log", "a") as f:
             f.write(f"\n[{datetime.now()}] Transcription started. Bytes: {len(audio_bytes)}")
         
@@ -153,7 +157,13 @@ class OpenAIEngine(ILLMEngine):
             tmp_file_path = tmp_file.name
         
         try:
-            result = self.whisper_model.transcribe(tmp_file_path)
+            # initial_prompt helps with the context of the project
+            # we don't force 'zh' so it can handle English too
+            result = self.whisper_model.transcribe(
+                tmp_file_path,
+                initial_prompt="This is a personal digital memory archive named Mnemosyne. 这是一个个人数字记忆库，正在记录生活点滴。",
+                fp16=False 
+            )
             transcript = result["text"].strip()
             with open("whisper_debug.log", "a") as f:
                 f.write(f"\n[{datetime.now()}] Transcription success: {transcript[:50]}...")
