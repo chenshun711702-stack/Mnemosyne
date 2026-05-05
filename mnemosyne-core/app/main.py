@@ -99,6 +99,19 @@ async def chat(request: ChatRequest, encryptor: Optional[EncryptionManager] = De
         sources=context
     )
 
+@app.get("/export")
+async def export_archive(encryptor: Optional[EncryptionManager] = Depends(get_encryptor)):
+    # We export all memories. 
+    # NOTE: If an encryptor is provided, the UI can't 'see' the raw data anyway, 
+    # but the export will contain whatever is in the DB (encrypted or plain).
+    memories = storage.list_memories(limit=10000, encryptor=None) # Raw export
+    return {
+        "project": "Mnemosyne",
+        "version": "0.5.0",
+        "exported_at": datetime.now().isoformat(),
+        "memories": [m.model_dump() for m in memories]
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

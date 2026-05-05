@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3 } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download } from 'lucide-react';
 import { useReactMediaRecorder } from 'react-media-recorder-2';
 
 interface Memory {
@@ -139,6 +139,23 @@ function App() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await axios.get('/api/export', { headers: getHeaders() });
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(response.data, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", `mnemosyne_archive_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      triggerSuccess('Archive Exported Successfully');
+    } catch (err) {
+      console.error(err);
+      alert('Export Failed');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Forget this memory?')) return;
     try {
@@ -202,12 +219,12 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.5.0-REVIEW-LOOP</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.5.1-ARCHIVE-READY</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
                 <Edit3 className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cognitive Review Active</span>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cognitive Core Active</span>
               </div>
             </div>
           </div>
@@ -439,8 +456,10 @@ function App() {
           </div>
           <div className="bento-card">
             <div className="bento-inner py-4 flex-row items-center justify-center gap-8 text-[9px] font-black uppercase text-zinc-700 tracking-widest">
-              <span className="hover:text-white transition-colors cursor-pointer">Terms</span>
-              <span className="hover:text-white transition-colors cursor-pointer">Privacy</span>
+              <span onClick={handleExport} className="hover:text-white transition-colors cursor-pointer flex items-center gap-2">
+                <Download className="w-3 h-3" /> Archive Export
+              </span>
+              <span className="hover:text-white transition-colors cursor-pointer">Security</span>
               <Github className="w-4 h-4" />
             </div>
           </div>
