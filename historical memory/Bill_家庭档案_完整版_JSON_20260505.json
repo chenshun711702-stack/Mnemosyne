@@ -1,0 +1,80 @@
+{
+  "title": "Bill 家庭档案",
+  "generated_at": "2026-05-05",
+  "source": "QClaw 记忆系统",
+  "family_members": {
+    "bill": {
+      "name": "Bill",
+      "age": 48,
+      "education": "上海财经大学研究生",
+      "work": "外企",
+      "income": "100-200万/年",
+      "work_language": "英语",
+      "overseas_experience": false
+    },
+    "son": {
+      "age": 18,
+      "school": "英国帝国理工学院（Imperial College London）",
+      "major": "EEE（电气与电子工程）",
+      "status": "大学在读",
+      "notes": "已完成高考或大学申请阶段，规划空间较小"
+    },
+    "daughter": {
+      "name": "李雅",
+      "age": 11,
+      "status": "2026年刚升入初中，国内就读",
+      "notes": "处于教育规划黄金期，尚有较大规划空间"
+    }
+  },
+  "education_plan": {
+    "son": {
+      "status": "已在IC读大学，规划已落定",
+      "action": "无需进一步低龄留学规划"
+    },
+    "daughter": {
+      "core_direction": "获取香港或新加坡身份，降低港新大学入学门槛",
+      "path_hongkong": {
+        "step1": "申请香港身份",
+        "step2": "在港参加DSE（香港中学文凭试）——本地考试，本地录取名额",
+        "step3": "持有香港身份享受本地生名额优惠"
+      },
+      "path_singapore": {
+        "route": "AEIS入学 → O-Level → 预科 → 大学本科",
+        "alternatives": ["A-Level", "IB文凭"]
+      },
+      "studied_pathways": {
+        "hongkong": ["高考统招", "自主招生", "DSE", "副学士", "国际课程"],
+        "singapore": ["AEIS", "O-Level", "A-Level", "IB文凭", "私立预科"]
+      },
+      "pending_research": [
+        "身份类型的录取政策差异",
+        "具体申请时间节点与身份申请操作路径"
+      ]
+    }
+  },
+  "parenting": {
+    "philosophy_evolution": "从家长制/集权式转变为平等式/观察-支持型",
+    "core_insights": [
+      "先处理情绪再解决问题：曾忽略孩子情绪、直接讲道理，导致沟通无效",
+      "爱与回报的矛盾：理智上认同无私之爱，行为上却下意识期待正向反馈",
+      "踢猫效应：工作压力会无意识传递给孩子，成为情绪转移出口",
+      "觉察时机问题：很多教育问题意识到时已错过黄金窗口"
+    ],
+    "practice_cases": [
+      "儿子曾在「戏剧社」与「数学竞赛」之间产生兴趣冲突",
+      "「牛排不够吃」等日常餐桌权力互动场景",
+      "亲子冲突中权力与边界的多维互动"
+    ],
+    "reference_philosophies": [
+      "蒙特梭利（Montessori）：观察者角色，而非灌输者",
+      "园丁式教育：创造环境让孩子自己生长",
+      "正面管教（Positive Discipline）：和善而坚定，不惩罚不骄纵"
+    ]
+  },
+  "todos": [
+    "女儿李雅教育路径选择（港/新身份规划）",
+    "身份规划（港/新）尚未深入研究具体操作路径",
+    "亲子关系短篇/回忆录写作项目进行中"
+  ],
+  "generated_by": "QClaw AI"
+}

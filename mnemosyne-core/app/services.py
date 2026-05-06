@@ -125,6 +125,9 @@ class ChromaStorage(IMemoryStorage):
                 metadata=metadata,
                 base64_content=content if is_image else None
             ))
+        
+        # Sort by ID descending (newest first)
+        responses.sort(key=lambda x: x.id, reverse=True)
         return responses
 
     def delete_memory(self, memory_id: str) -> bool:

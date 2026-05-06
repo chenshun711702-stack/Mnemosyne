@@ -194,7 +194,7 @@ function App() {
     try {
       const response = await axios.post('/api/import', formData, {
         headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' },
-        timeout: 60000 // 60s for large archives
+        timeout: 180000 // 3 minutes for heavy AI processing
       });
       triggerSuccess(`Imported ${response.data.imported_count} Memories`);
       fetchMemories();
