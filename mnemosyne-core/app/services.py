@@ -3,6 +3,7 @@ import base64
 import chromadb
 import tempfile
 import whisper
+import threading
 from chromadb.utils import embedding_functions
 from openai import OpenAI, RateLimitError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -15,9 +16,21 @@ from .interfaces import IMemoryStorage, ILLMEngine
 from .schemas import MemoryEntry, MemoryResponse
 
 class CLIPEngine:
+    _model = None
+    _lock = threading.Lock()
+
     def __init__(self):
-        # Local CLIP model - downloads on first run
-        self.model = SentenceTransformer('clip-ViT-B-32')
+        # Model is lazy-loaded on first use
+        pass
+
+    @property
+    def model(self):
+        if CLIPEngine._model is None:
+            with CLIPEngine._lock:
+                if CLIPEngine._model is None:
+                    print(f"[{datetime.now()}] Loading CLIP model (clip-ViT-B-32)...")
+                    CLIPEngine._model = SentenceTransformer('clip-ViT-B-32')
+        return CLIPEngine._model
 
     def get_text_embedding(self, text: str):
         return self.model.encode(text).tolist()
@@ -28,7 +41,6 @@ class CLIPEngine:
 class ChromaStorage(IMemoryStorage):
     def __init__(self, path: str):
         self.client = chromadb.PersistentClient(path=path)
-        # Default text EF for standard text ingestion
         self.ef = embedding_functions.DefaultEmbeddingFunction()
         self.collection = self.client.get_or_create_collection(
             name="memories_v2", 
@@ -39,9 +51,7 @@ class ChromaStorage(IMemoryStorage):
     def add_memory(self, entry: MemoryEntry, encryptor=None) -> str:
         entry_id = f"mem_{int(datetime.now().timestamp() * 1000)}"
         clean_metadata = {k: v for k, v in entry.metadata.model_dump().items() if v is not None}
-        
         content_to_store = entry.content
-        # Use CLIP for cross-modal search
         embedding = self.clip.get_text_embedding(entry.content)
 
         if encryptor:
@@ -59,11 +69,7 @@ class ChromaStorage(IMemoryStorage):
     def add_image_memory(self, image_bytes: bytes, metadata: dict, encryptor=None) -> str:
         entry_id = f"img_{int(datetime.now().timestamp() * 1000)}"
         image = Image.open(BytesIO(image_bytes))
-        
-        # 1. Generate CLIP embedding
         embedding = self.clip.get_image_embedding(image)
-        
-        # 2. Store as base64 in document
         base64_img = base64.b64encode(image_bytes).decode('utf-8')
         
         metadata["is_image"] = True
@@ -82,9 +88,7 @@ class ChromaStorage(IMemoryStorage):
         return entry_id
 
     def search_memories(self, query: str, n_results: int, encryptor=None):
-        # Use CLIP text embedding for query
         query_embedding = self.clip.get_text_embedding(query)
-        
         results = self.collection.query(
             query_embeddings=[query_embedding], 
             n_results=n_results
@@ -126,7 +130,6 @@ class ChromaStorage(IMemoryStorage):
                 base64_content=content if is_image else None
             ))
         
-        # Sort by ID descending (newest first)
         responses.sort(key=lambda x: x.id, reverse=True)
         return responses
 
@@ -138,20 +141,29 @@ class ChromaStorage(IMemoryStorage):
             return False
 
 class OpenAIEngine(ILLMEngine):
+    _whisper_model = None
+    _lock = threading.Lock()
+
     def __init__(self, api_key: str, base_url: str = None):
         self.client = OpenAI(
             api_key=api_key,
             base_url=base_url or "https://api.openai.com/v1"
         ) if api_key else None
-        try:
-            # Try loading small model for better accuracy
-            self.whisper_model = whisper.load_model("small")
-        except Exception:
-            # Fallback to base if small fails to load
-            self.whisper_model = whisper.load_model("base")
+
+    @property
+    def whisper_model(self):
+        if OpenAIEngine._whisper_model is None:
+            with OpenAIEngine._lock:
+                if OpenAIEngine._whisper_model is None:
+                    print(f"[{datetime.now()}] Loading Whisper model (small)...")
+                    try:
+                        OpenAIEngine._whisper_model = whisper.load_model("small")
+                    except Exception:
+                        print(f"[{datetime.now()}] Failed to load Whisper Small, falling back to Base.")
+                        OpenAIEngine._whisper_model = whisper.load_model("base")
+        return OpenAIEngine._whisper_model
 
     def analyze_sentiment(self, text: str) -> str:
-        """Analyzes sentiment using GPT-4o-mini."""
         if not self.client:
             return "Neutral"
         try:
@@ -165,29 +177,22 @@ class OpenAIEngine(ILLMEngine):
             return "Neutral"
 
     def transcribe_audio(self, audio_bytes: bytes) -> str:
-        """Transcribes audio using local Whisper model with contextual prompting and language detection."""
         with open("whisper_debug.log", "a") as f:
-            f.write(f"\n[{datetime.now()}] Transcription started. Bytes: {len(audio_bytes)}")
+            f.write(f"\n[{datetime.now()}] Transcription request received. Bytes: {len(audio_bytes)}")
         
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
             tmp_file.write(audio_bytes)
             tmp_file_path = tmp_file.name
         
         try:
-            # initial_prompt helps with the context of the project
-            # we don't force 'zh' so it can handle English too
             result = self.whisper_model.transcribe(
                 tmp_file_path,
-                initial_prompt="This is a personal digital memory archive named Mnemosyne. 这是一个个人数字记忆库，正在记录生活点滴。",
+                initial_prompt="This is a personal digital memory archive named Mnemosyne. 这是一个个人数字记忆库。",
                 fp16=False 
             )
             transcript = result["text"].strip()
-            with open("whisper_debug.log", "a") as f:
-                f.write(f"\n[{datetime.now()}] Transcription success: {transcript[:50]}...")
             return transcript
         except Exception as e:
-            with open("whisper_debug.log", "a") as f:
-                f.write(f"\n[{datetime.now()}] Transcription error: {str(e)}")
             return f"[Error: Local transcription failed: {str(e)}]"
         finally:
             if os.path.exists(tmp_file_path):
@@ -197,26 +202,26 @@ class OpenAIEngine(ILLMEngine):
         context_str = "\n".join([f"- {doc}" for doc in context])
         
         if not self.client:
-            return f"本地模式: 我为您找到了以下相关记忆：\n{context_str}"
+            return f"本地模式: 以下是与您的查询相关的记忆：\n{context_str}"
         
         prompt = f"基于以下记忆内容回答用户：\n{context_str}\n\n问题：{query}"
         
         @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=10),
+            stop=stop_after_attempt(2),
+            wait=wait_exponential(multiplier=1, min=2, max=6),
             retry=retry_if_exception_type(RateLimitError),
             reraise=True
         )
-        def _call_openai():
+        def _call_llm():
             return self.client.chat.completions.create(
                 model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
                 messages=[{"role": "user", "content": prompt}]
             )
 
         try:
-            response = _call_openai()
+            response = _call_llm()
             return response.choices[0].message.content
-        except RateLimitError:
-            return f"AI 接口请求过于频繁。检索到的背景：\n{context_str}"
         except Exception as e:
-            return f"AI 接口调用失败: {str(e)}。检索到的背景：\n{context_str}"
+            # Resilient Fallback: If API fails (balance/network), don't crash, provide local context
+            print(f"[{datetime.now()}] LLM API failed: {str(e)}. Falling back to local context synthesis.")
+            return f"（AI 接口暂不可用，已自动切换至本地摘要模式）\n我为您找到了以下相关记忆，它们可能包含您需要的答案：\n\n{context_str}"
