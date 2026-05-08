@@ -156,7 +156,7 @@ class OpenAIEngine(ILLMEngine):
             return "Neutral"
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
                 messages=[{"role": "system", "content": "You are a sentiment analyzer. Respond with only one word: Positive, Negative, or Neutral."},
                           {"role": "user", "content": text}]
             )
@@ -209,7 +209,7 @@ class OpenAIEngine(ILLMEngine):
         )
         def _call_openai():
             return self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
                 messages=[{"role": "user", "content": prompt}]
             )
 
