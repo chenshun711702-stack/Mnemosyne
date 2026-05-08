@@ -15,13 +15,16 @@
 - [x] Phase 3: Image-to-Vector support using local CLIP model.
 - [x] Phase 3: Voice-to-Memory using **Local Whisper Model** (`small`).
 - [x] Cognitive Review Loop for voice ingestion.
-- [x] **Priority 2: Dockerization**: Created Dockerfiles and Compose setup for production deployment.
+- [x] Priority 2: Dockerization: Created Dockerfiles and Compose setup.
+- [x] Priority 3: Memory Archive Export (JSON).
+- [x] Priority 4: Archive Import (Flexible Cognitive Parser).
+- [x] Priority 5: Sentiment & Vibe Analysis.
+- [x] **Switch AI Engine to DeepSeek**: Integrated DeepSeek-chat as an OpenAI-compatible provider.
 
 ## 🟡 In Progress
-- [ ] Optimizing Docker image sizes.
-- [ ] Preparing Export/Import functionality.
+- [ ] Stabilizing multi-modal imports for very large archives.
+- [ ] Preparing for final production optimization.
 
 ## 🔴 Backlog (To Do)
-- [ ] Task: Export/Import functionality for encrypted archives.
 - [ ] Task: Sentiment trend analysis in Synthesis.
 - [ ] Task: Edge-server auto-discovery.
