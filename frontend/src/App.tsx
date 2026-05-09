@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload, Smile, Frown, Meh, BarChart3 } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload, Smile, Frown, Meh, BarChart3, Share2 } from 'lucide-react';
 import { useReactMediaRecorder } from 'react-media-recorder-2';
+import ForceGraph2D from 'react-force-graph-2d';
 
 interface Memory {
   id: string;
@@ -25,6 +26,11 @@ interface VibeStats {
     Negative: number;
     Neutral: number;
   }
+}
+
+interface GraphData {
+  nodes: any[];
+  links: any[];
 }
 
 const containerVariants = {
@@ -55,8 +61,10 @@ function App() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessSuccessMessage] = useState('Neural Fragment Synchronized');
   const [stats, setStats] = useState<VibeStats>({});
+  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const graphRef = useRef<any>();
 
   const getHeaders = () => {
     return encryptionKey ? { 'X-Encryption-Key': encryptionKey } : {};
@@ -124,6 +132,7 @@ function App() {
       const res = await axios.get('/api/memories', { headers: getHeaders() });
       setMemories(res.data);
       fetchStats();
+      fetchGraph();
     } catch (err) {
       console.error('Failed to fetch memories', err);
     }
@@ -135,6 +144,15 @@ function App() {
       setStats(res.data);
     } catch (err) {
       console.error('Failed to fetch stats', err);
+    }
+  };
+
+  const fetchGraph = async () => {
+    try {
+      const res = await axios.get('/api/graph/data', { headers: getHeaders() });
+      setGraphData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch graph data', err);
     }
   };
 
@@ -262,6 +280,14 @@ function App() {
     }
   };
 
+  const getSentimentColor = (sentiment?: string) => {
+    switch(sentiment) {
+      case 'Positive': return '#22c55e';
+      case 'Negative': return '#ef4444';
+      default: return '#71717a';
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 lg:p-12 overflow-x-hidden">
       <AnimatePresence>
@@ -297,7 +323,7 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.6.1-TIMELINE</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.7.0-GRAPH</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-4">
@@ -356,7 +382,6 @@ function App() {
               />
               <div className="flex items-center justify-between">
                 <div className="flex gap-4">
-                  {/* Voice Record Button */}
                   <button 
                     onClick={status === 'recording' ? stopRecording : startRecording}
                     disabled={loading}
@@ -420,7 +445,7 @@ function App() {
                 >
                   {loading ? (
                     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-                      <RefreshCw className="w-4 h-4" />
+                      <RefreshCw className="w-4 h-4 text-white" />
                     </motion.div>
                   ) : (
                     <Search className="w-4 h-4 text-white" />
@@ -459,51 +484,63 @@ function App() {
             </div>
           </motion.section>
 
+          {/* Knowledge Graph Tile */}
+          <motion.section className="md:col-span-8 bento-card overflow-hidden" variants={itemVariants}>
+            <div className="bento-inner !p-0 relative">
+               <div className="absolute top-8 left-8 z-10 pointer-events-none">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="w-4 h-4 text-blue-400" />
+                    <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Neural Map</h2>
+                  </div>
+               </div>
+               <div className="w-full h-[400px]">
+                  {graphData.nodes.length > 0 ? (
+                    <ForceGraph2D
+                      ref={graphRef}
+                      graphData={graphData}
+                      backgroundColor="rgba(0,0,0,0)"
+                      nodeLabel="label"
+                      nodeColor={node => getSentimentColor(node.sentiment)}
+                      nodeRelSize={6}
+                      linkColor={() => 'rgba(255,255,255,0.05)'}
+                      linkDirectionalParticles={1}
+                      linkDirectionalParticleSpeed={0.005}
+                      width={800}
+                      height={400}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                       <p className="text-zinc-800 text-[9px] font-black uppercase tracking-widest">Mapping neural associations...</p>
+                    </div>
+                  )}
+               </div>
+            </div>
+          </motion.section>
+
           {/* Timeline Stats Tile */}
-          <motion.section className="md:col-span-12 bento-card" variants={itemVariants}>
+          <motion.section className="md:col-span-4 bento-card" variants={itemVariants}>
             <div className="bento-inner">
               <div className="flex items-center gap-2 mb-8">
                 <BarChart3 className="w-4 h-4 text-blue-400" />
-                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Cognitive Timeline</h2>
+                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Timeline</h2>
               </div>
-              <div className="flex items-end gap-3 h-32 px-4">
+              <div className="flex items-end gap-2 h-full pb-8">
                 {Object.keys(stats).length > 0 ? (
-                  Object.entries(stats).map(([date, counts]) => {
+                  Object.entries(stats).slice(-7).map(([date, counts]) => {
                     const total = counts.Positive + counts.Negative + counts.Neutral;
                     return (
                       <div key={date} className="flex-1 group relative flex flex-col items-center gap-2">
-                        <div className="w-full flex flex-col justify-end gap-1 h-full">
-                          <motion.div 
-                            initial={{ height: 0 }}
-                            animate={{ height: `${(counts.Positive / total) * 100}%` }}
-                            className="bg-green-500/40 rounded-t-sm w-full"
-                          />
-                          <motion.div 
-                            initial={{ height: 0 }}
-                            animate={{ height: `${(counts.Neutral / total) * 100}%` }}
-                            className="bg-zinc-500/20 w-full"
-                          />
-                          <motion.div 
-                            initial={{ height: 0 }}
-                            animate={{ height: `${(counts.Negative / total) * 100}%` }}
-                            className="bg-red-500/40 rounded-b-sm w-full"
-                          />
+                        <div className="w-full flex flex-col justify-end gap-1 h-32">
+                          <motion.div initial={{ height: 0 }} animate={{ height: `${(counts.Positive / total) * 100}%` }} className="bg-green-500/40 rounded-t-sm w-full" />
+                          <motion.div initial={{ height: 0 }} animate={{ height: `${(counts.Neutral / total) * 100}%` }} className="bg-zinc-500/20 w-full" />
+                          <motion.div initial={{ height: 0 }} animate={{ height: `${(counts.Negative / total) * 100}%` }} className="bg-red-500/40 rounded-b-sm w-full" />
                         </div>
-                        <span className="text-[8px] font-mono text-zinc-700 rotate-45 mt-2 whitespace-nowrap">{date.split('-').slice(1).join('/')}</span>
-                        
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-white/10 p-2 rounded-lg z-20 pointer-events-none min-w-[80px]">
-                           <p className="text-[8px] font-black text-white mb-1 uppercase tracking-tighter">{date}</p>
-                           <p className="text-[8px] text-green-400 flex justify-between">Pos: <span>{counts.Positive}</span></p>
-                           <p className="text-[8px] text-red-400 flex justify-between">Neg: <span>{counts.Negative}</span></p>
-                        </div>
+                        <span className="text-[6px] font-mono text-zinc-700 uppercase">{date.split('-').slice(2)}</span>
                       </div>
                     )
                   })
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center border border-dashed border-white/5 rounded-3xl">
-                     <p className="text-zinc-800 text-[9px] font-black uppercase tracking-widest">Collecting temporal data...</p>
-                  </div>
+                   <p className="text-zinc-800 text-[8px] uppercase font-bold">No Data</p>
                 )}
               </div>
             </div>

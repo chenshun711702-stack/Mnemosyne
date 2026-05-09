@@ -170,6 +170,41 @@ async def vibe_stats():
     sorted_stats = dict(sorted(stats.items()))
     return sorted_stats
 
+@app.get("/graph/data")
+async def graph_data(encryptor: Optional[EncryptionManager] = Depends(get_encryptor)):
+    # Limit to 50 memories for graph performance
+    memories = storage.list_memories(limit=50, encryptor=encryptor)
+    
+    nodes = []
+    edges = []
+    
+    for i, m in enumerate(memories):
+        # Create Node
+        nodes.append({
+            "id": m.id,
+            "label": m.content[:30] + "...",
+            "sentiment": m.metadata.get("sentiment", "Neutral"),
+            "val": 1 # size
+        })
+        
+        # Calculate semantic edges (comparing against every other memory)
+        # Note: This is an O(n^2) operation, kept to small n=50 for Karpathy minimalism
+        for j in range(i + 1, len(memories)):
+            m2 = memories[j]
+            
+            # Use search functionality to find distance between nodes
+            # We treat node i as query and node j as candidate
+            res = storage.search_memories(query=m.content, n_results=50, encryptor=encryptor)
+            for r in res:
+                if r.id == m2.id and r.distance and r.distance < 1.0: # Similarity threshold
+                    edges.append({
+                        "source": m.id,
+                        "target": m2.id,
+                        "distance": r.distance
+                    })
+    
+    return {"nodes": nodes, "links": edges}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
