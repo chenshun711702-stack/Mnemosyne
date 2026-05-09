@@ -147,6 +147,29 @@ async def chat(request: ChatRequest, encryptor: Optional[EncryptionManager] = De
         sources=context
     )
 
+@app.get("/stats/vibe")
+async def vibe_stats():
+    # Retrieve recent memories (limit to 100 for stats)
+    memories = storage.list_memories(limit=100)
+    
+    stats = {}
+    for m in memories:
+        # Extract date YYYY-MM-DD
+        ts = m.metadata.get("timestamp")
+        if not ts: continue
+        
+        day = ts.split("T")[0]
+        sentiment = m.metadata.get("sentiment", "Neutral")
+        
+        if day not in stats:
+            stats[day] = {"Positive": 0, "Negative": 0, "Neutral": 0}
+        
+        stats[day][sentiment] += 1
+    
+    # Sort by date
+    sorted_stats = dict(sorted(stats.items()))
+    return sorted_stats
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

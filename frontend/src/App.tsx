@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload, Smile, Frown, Meh } from 'lucide-react';
+import { Brain, Search, Sparkles, Clock, MapPin, Trash2, RefreshCw, Shield, Zap, Database, ArrowUpRight, Github, LayoutGrid, Image as ImageIcon, CheckCircle2, Mic, MicOff, Edit3, Download, Upload, Smile, Frown, Meh, BarChart3 } from 'lucide-react';
 import { useReactMediaRecorder } from 'react-media-recorder-2';
 
 interface Memory {
@@ -17,6 +17,14 @@ interface Memory {
     source?: string;
   };
   base64_content?: string;
+}
+
+interface VibeStats {
+  [key: string]: {
+    Positive: number;
+    Negative: number;
+    Neutral: number;
+  }
 }
 
 const containerVariants = {
@@ -46,6 +54,7 @@ function App() {
   const [encryptionKey, setEncryptionKey] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessSuccessMessage] = useState('Neural Fragment Synchronized');
+  const [stats, setStats] = useState<VibeStats>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,8 +123,18 @@ function App() {
     try {
       const res = await axios.get('/api/memories', { headers: getHeaders() });
       setMemories(res.data);
+      fetchStats();
     } catch (err) {
       console.error('Failed to fetch memories', err);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get('/api/stats/vibe');
+      setStats(res.data);
+    } catch (err) {
+      console.error('Failed to fetch stats', err);
     }
   };
 
@@ -194,7 +213,7 @@ function App() {
     try {
       const response = await axios.post('/api/import', formData, {
         headers: { ...getHeaders(), 'Content-Type': 'multipart/form-data' },
-        timeout: 180000 // 3 minutes for heavy AI processing
+        timeout: 180000 
       });
       triggerSuccess(`Imported ${response.data.imported_count} Memories`);
       fetchMemories();
@@ -278,7 +297,7 @@ function App() {
                 </motion.div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tighter">MNEMOSYNE</h1>
-                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.6.0-VIBE-CHECK</p>
+                  <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em]">Neural Core v0.6.1-TIMELINE</p>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-4">
@@ -434,6 +453,56 @@ function App() {
                       <Zap className="w-8 h-8 opacity-10" />
                     </div>
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 italic">Awaiting Request</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Timeline Stats Tile */}
+          <motion.section className="md:col-span-12 bento-card" variants={itemVariants}>
+            <div className="bento-inner">
+              <div className="flex items-center gap-2 mb-8">
+                <BarChart3 className="w-4 h-4 text-blue-400" />
+                <h2 className="text-xs font-black uppercase tracking-widest text-zinc-400">Cognitive Timeline</h2>
+              </div>
+              <div className="flex items-end gap-3 h-32 px-4">
+                {Object.keys(stats).length > 0 ? (
+                  Object.entries(stats).map(([date, counts]) => {
+                    const total = counts.Positive + counts.Negative + counts.Neutral;
+                    return (
+                      <div key={date} className="flex-1 group relative flex flex-col items-center gap-2">
+                        <div className="w-full flex flex-col justify-end gap-1 h-full">
+                          <motion.div 
+                            initial={{ height: 0 }}
+                            animate={{ height: `${(counts.Positive / total) * 100}%` }}
+                            className="bg-green-500/40 rounded-t-sm w-full"
+                          />
+                          <motion.div 
+                            initial={{ height: 0 }}
+                            animate={{ height: `${(counts.Neutral / total) * 100}%` }}
+                            className="bg-zinc-500/20 w-full"
+                          />
+                          <motion.div 
+                            initial={{ height: 0 }}
+                            animate={{ height: `${(counts.Negative / total) * 100}%` }}
+                            className="bg-red-500/40 rounded-b-sm w-full"
+                          />
+                        </div>
+                        <span className="text-[8px] font-mono text-zinc-700 rotate-45 mt-2 whitespace-nowrap">{date.split('-').slice(1).join('/')}</span>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 border border-white/10 p-2 rounded-lg z-20 pointer-events-none min-w-[80px]">
+                           <p className="text-[8px] font-black text-white mb-1 uppercase tracking-tighter">{date}</p>
+                           <p className="text-[8px] text-green-400 flex justify-between">Pos: <span>{counts.Positive}</span></p>
+                           <p className="text-[8px] text-red-400 flex justify-between">Neg: <span>{counts.Negative}</span></p>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center border border-dashed border-white/5 rounded-3xl">
+                     <p className="text-zinc-800 text-[9px] font-black uppercase tracking-widest">Collecting temporal data...</p>
                   </div>
                 )}
               </div>
